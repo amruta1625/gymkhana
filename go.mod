@@ -1,4 +1,5 @@
-module go-quickstart
+module github.com/amruta1625/gymkhana
+
 
 go 1.20
 

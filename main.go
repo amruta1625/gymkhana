@@ -2,43 +2,47 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"net/url"
+	"net/http"
 
+	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/amruta1625/gymkhana/controllers"
 )
 
 func main() {
-	// Replace <password> with the actual password for the swecha623 user and URL encode it
-	password := "Mummy#1625"
-	encodedPassword := url.QueryEscape(password)
+	// Replace <password> with your actual password
+	password := "amruta"
+	uri := "mongodb+srv://swecha:" + password + "@cluster0.4o1cvll.mongodb.net/your_database_name_here?retryWrites=true&w=majority"
 
-	// Construct the connection string with the encoded password
-	connectionURI := fmt.Sprintf("mongodb+srv://swecha623:%s@cluster0.4o1cvll.mongodb.net/",
-		encodedPassword)
+	// Establish MongoDB client
+	client := getClient(uri)
+	defer client.Disconnect(context.Background())
 
-	// Set client options
-	clientOptions := options.Client().ApplyURI(connectionURI)
+	// Access the specific database you want to work with
+	database := client.Database("swecha")
 
-	// Connect to MongoDB
+	r := httprouter.New()
+	uc := controllers.NewUserController(database)
+	r.GET("/user/:id", uc.GetUser)
+	r.POST("/user", uc.CreateUser)
+	r.DELETE("/user/:id", uc.DeleteUser)
+	http.ListenAndServe("localhost:9000", r)
+}
+
+func getClient(uri string) *mongo.Client {
+	clientOptions := options.Client().ApplyURI(uri)
+
 	client, err := mongo.Connect(context.Background(), clientOptions)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
-	// Check the connection
 	err = client.Ping(context.Background(), nil)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
-	fmt.Println("Connected to MongoDB!")
-
-	// Close the connection
-	err = client.Disconnect(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
+	return client
 }
